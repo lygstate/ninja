@@ -113,6 +113,7 @@ TEST(IncludesNormalize, LongInvalidPath) {
   EXPECT_FALSE(result.empty());
   EXPECT_TRUE(err.empty()) << err;
 
+
   // Construct max size path having cwd prefix.
   // kExactlyMaxPath = "$cwd\\a\\aaaa...aaaa\0";
   char kExactlyMaxPath[_MAX_PATH + 1];
@@ -167,4 +168,23 @@ TEST(IncludesNormalize, ShortRelativeButLongAbsolutePath) {
   // Make sue a path of _MAX_PATH + 1 characters also works.
   std::string more_than_max_path = exactly_max_path + "\\a";
   EXPECT_TRUE(normalizer.Normalize(more_than_max_path, &result, &err)) << err;
+
+
+  constexpr const int MAX_PATH_LONG = 32767;
+
+  // Construct max size path having cwd prefix.
+  // kExactlyMaxPath = "aaaa\\aaaa...aaaa\0";
+  char kExactlyMaxPath[MAX_PATH_LONG + 1];
+  for (int i = 0; i < MAX_PATH_LONG; ++i) {
+    if (i < MAX_PATH_LONG - 1 && i % 10 == 4)
+      kExactlyMaxPath[i] = '\\';
+    else
+      kExactlyMaxPath[i] = 'a';
+  }
+  kExactlyMaxPath[MAX_PATH_LONG] = '\0';
+  EXPECT_EQ(strlen(kExactlyMaxPath), static_cast<size_t>(MAX_PATH_LONG));
+
+  // Make sure a path that's exactly MAX_PATH_LONG long fails with a proper error.
+  EXPECT_FALSE(normalizer.Normalize(kExactlyMaxPath, &result, &err));
+  EXPECT_TRUE(err.find("GetFullPathName") != std::string::npos);
 }

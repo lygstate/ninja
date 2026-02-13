@@ -562,7 +562,7 @@ void Win32Fatal(const char* function, const char* hint) {
   }
 }
 
-bool ConvertUTF8ToWin32Unicode(const std::string& input, std::wstring* output,
+bool ConvertUTF8ToWin32Unicode(const StringPiece& input, std::wstring* output,
                                std::string* err) {
   output->clear();
   if (input.empty())
@@ -574,13 +574,13 @@ bool ConvertUTF8ToWin32Unicode(const std::string& input, std::wstring* output,
     return false;
   }
   int wide_size =
-      MultiByteToWideChar(CP_UTF8, 0, input.c_str(), int_size, nullptr, 0);
+      MultiByteToWideChar(CP_UTF8, 0, input.begin(), int_size, nullptr, 0);
   if (wide_size <= 0) {
-    *err = "MultiByteToWideChar(" + input + "): " + GetLastErrorString();
+    *err = "MultiByteToWideChar(" + input.AsString() + "): " + GetLastErrorString();
     return false;
   }
   output->resize(static_cast<size_t>(wide_size));
-  MultiByteToWideChar(CP_UTF8, 0, input.c_str(), int_size,
+  MultiByteToWideChar(CP_UTF8, 0, input.begin(), int_size,
                       const_cast<wchar_t*>(output->data()), wide_size);
   return true;
 }

@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "includes_normalize.h"
+
 #include <string.h>
+
 #include <windows.h>
 
 #include <algorithm>
 #include <iterator>
 #include <sstream>
 
-#include "includes_normalize.h"
 #include "string_piece.h"
 #include "string_piece_util.h"
 #include "util.h"
 
-#define _MAX_PATH_LONG 32767
-
 namespace {
+
+constexpr const std::size_t MAX_PATH_LONG = 32767;
 
 bool InternalGetFullPathName(const StringPiece& file_name, char* buffer,
                              size_t buffer_length, std::string* err) {
@@ -35,9 +37,8 @@ bool InternalGetFullPathName(const StringPiece& file_name, char* buffer,
   // enabled. GetFullPathNameW() must be used for this function to work!
   buffer[0] = '\0';
   // Convert to wide filename first.
-  std::string filename_str = file_name.AsString();
   std::wstring wide_filename;
-  if (!ConvertUTF8ToWin32Unicode(filename_str, &wide_filename, err))
+  if (!ConvertUTF8ToWin32Unicode(file_name, &wide_filename, err))
     return false;
 
   // Call GetFullPathNameW()
@@ -56,21 +57,19 @@ bool InternalGetFullPathName(const StringPiece& file_name, char* buffer,
       GetFullPathNameW(wide_filename.c_str(), wide_full_size,
                        const_cast<wchar_t*>(wide_path.data()), NULL);
   if (wide_full_size2 == 0) {
-    *err = "GetFullPathNameW(" + filename_str + "): " + GetLastErrorString();
+    *err = "GetFullPathNameW(" + file_name.AsString() + "): " + GetLastErrorString();
     return false;
   }
 
   // Convert wide_path to Unicode.
   int utf8_size =
-      WideCharToMultiByte(CP_UTF8, 0, wide_path.c_str(), wide_path.size(),
+      WideCharToMultiByte(CP_UTF8, 0, wide_path.c_str(), wide_path.size() + 1,
                           buffer, buffer_length, NULL, NULL);
   if (utf8_size <= 0 || utf8_size >= buffer_length) {
     *err = "WideCharToMultiByte(" + std::string(wide_path.begin(), wide_path.end()) +
            "): " + GetLastErrorString();
-    buffer[0] = '\0';
     return false;
   }
-  buffer[utf8_size] = '\0';
   return true;
 }
 
@@ -107,8 +106,8 @@ bool SameDrive(StringPiece a, StringPiece b, std::string* err) {
     return true;
   }
 
-  char a_absolute[_MAX_PATH_LONG];
-  char b_absolute[_MAX_PATH_LONG];
+  char a_absolute[MAX_PATH_LONG];
+  char b_absolute[MAX_PATH_LONG];
   if (!InternalGetFullPathName(a, a_absolute, sizeof(a_absolute), err)) {
     return false;
   }
@@ -177,7 +176,7 @@ std::string IncludesNormalize::AbsPath(StringPiece s, std::string* err) {
     return result;
   }
 
-  char result[_MAX_PATH_LONG];
+  char result[MAX_PATH_LONG];
   if (!InternalGetFullPathName(s, result, sizeof(result), err)) {
     return "";
   }
@@ -216,9 +215,9 @@ std::string IncludesNormalize::Relativize(
 
 bool IncludesNormalize::Normalize(const std::string& input, std::string* result,
                                   std::string* err) const {
-  char copy[_MAX_PATH_LONG + 1];
+  char copy[MAX_PATH_LONG + 1];
   size_t len = input.size();
-  if (len > _MAX_PATH_LONG) {
+  if (len > MAX_PATH_LONG) {
     *err = "path too long";
     return false;
   }

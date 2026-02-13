@@ -507,7 +507,7 @@ TEST(StripAnsiEscapeCodes, StripColors) {
 TEST(ConvertUTF8ToWin32Unicode, Test) {
   std::string err;
   std::wstring output;
-  EXPECT_TRUE(ConvertUTF8ToWin32Unicode(std::string("B\xC3\xA9"
+  EXPECT_TRUE(ConvertUTF8ToWin32Unicode(StringPiece("B\xC3\xA9"
                                                     "b\xC3\xA9"),
                                         &output, &err));
   EXPECT_TRUE(err.empty()) << err;
